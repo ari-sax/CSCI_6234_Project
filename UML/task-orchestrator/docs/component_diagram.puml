@@ -1,0 +1,49 @@
+@startuml ComponentDiagram
+!theme plain
+
+package "Client Layer" {
+  component [Web Browser] as Browser
+  component [CLI Tools] as CLI
+  component [Third-party Apps] as Apps
+}
+
+package "Go Backend (Port 8080)" {
+  component [REST API Handler] as API
+  component [Task Queue] as Queue
+  component [Worker Pool] as Workers
+  component [Metrics Collector] as Metrics
+  component [Health Monitor] as Health
+}
+
+package "Data Layer" {
+  database [SQLite Database] as DB
+}
+
+package "Python Scheduler (Port 5000)" {
+  component [FastAPI Server] as FastAPI
+  component [Task Classifier] as Classifier
+  component [Worker Predictor] as Predictor
+  component [Duration Estimator] as Estimator
+}
+
+Browser --> API: JSON/REST
+CLI --> API: JSON/REST
+Apps --> API: JSON/REST
+
+API --> Queue: Queue management
+Queue --> Workers: Task assignment
+Workers --> API: Metrics update
+API --> Metrics: Collect stats
+API --> Health: Check status
+
+API --> DB: Store/Retrieve
+Metrics --> DB: Save metrics
+Health --> DB: Log health
+
+Workers --> FastAPI: HTTP POST
+FastAPI --> Classifier: Classify
+FastAPI --> Predictor: Predict
+FastAPI --> Estimator: Estimate
+FastAPI --> Workers: Return decision
+
+@enduml
