@@ -1,0 +1,59 @@
+@startuml StateDiagram
+!theme plain
+
+[*] --> QUEUED: Submit Task
+
+QUEUED --> ASSIGNED: Pull from Queue
+QUEUED --> ERROR: Queue Full\nor Timeout
+
+ASSIGNED --> RUNNING: Start Execution
+
+RUNNING --> COMPLETED: Execution Success
+RUNNING --> FAILED: Execution Failed
+
+FAILED --> ASSIGNED: Retry\n(Max 3 attempts)
+
+COMPLETED --> [*]: Task Done
+
+ERROR --> [*]: Return Error
+
+note right of QUEUED
+  Task waiting in queue
+  Status: QUEUED
+  Time: Variable
+end note
+
+note right of ASSIGNED
+  Task assigned to worker
+  Status: ASSIGNED
+  Worker ID: Known
+end note
+
+note right of RUNNING
+  Task being executed
+  Status: RUNNING
+  Start time: Recorded
+end note
+
+note right of COMPLETED
+  Task execution successful
+  Status: COMPLETED
+  Results: Stored
+  Duration: Recorded
+end note
+
+note right of FAILED
+  Task execution failed
+  Status: FAILED
+  Error: Logged
+  Retry: Automatic (Max 3)
+end note
+
+note right of ERROR
+  System error occurred
+  Queue full or timeout
+  Status: ERROR
+  Response: 400/503
+end note
+
+@enduml
