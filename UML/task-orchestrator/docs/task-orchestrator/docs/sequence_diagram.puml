@@ -1,0 +1,48 @@
+@startuml SequenceDiagram
+!theme plain
+
+participant Client
+participant "Go API\n(Port 8080)" as API
+participant TaskQueue
+participant Worker
+participant "Python Scheduler\n(Port 5000)" as Scheduler
+participant Database
+
+Client ->> API: POST /api/tasks
+activate API
+  API ->> API: Validate input
+  API ->> API: Create Task object
+  API ->> TaskQueue: Push task
+  API ->> Database: Store task
+  API ->> Client: Return task_id (202 Accepted)
+deactivate API
+
+TaskQueue ->> Worker: Pull task from queue
+activate Worker
+  Worker ->> Scheduler: POST /predict-schedule
+  activate Scheduler
+    Scheduler ->> Scheduler: Classify task type
+    Scheduler ->> Scheduler: Predict best worker
+    Scheduler ->> Scheduler: Estimate duration
+    Scheduler ->> Worker: Return decision
+  deactivate Scheduler
+  
+  Worker ->> Database: Update task status (ASSIGNED)
+  Worker ->> Worker: Execute task (sleep)
+  Worker ->> Database: Store execution result
+  Worker ->> Database: Update metrics
+deactivate Worker
+
+Client ->> API: GET /api/tasks/{id}
+activate API
+  API ->> Database: Fetch task
+  API ->> Client: Return task status
+deactivate API
+
+Client ->> API: GET /api/metrics
+activate API
+  API ->> Database: Get all metrics
+  API ->> Client: Return metrics JSON
+deactivate API
+
+@enduml
