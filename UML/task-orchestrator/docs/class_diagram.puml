@@ -1,0 +1,95 @@
+@startuml ClassDiagram
+!theme plain
+skinparam linetype ortho
+
+class Task {
+  - id: string
+  - type: TaskType
+  - priority: int
+  - estimatedRuntime: float
+  - memoryRequired: int
+  - metadata: map
+  - status: TaskStatus
+  - assignedWorker: string
+  - actualDuration: float
+  - predictedDuration: float
+  - createdAt: time.Time
+  - startedAt: time.Time
+  - completedAt: time.Time
+  --
+  + SetStatus(status): void
+  + SetWorker(worker): void
+  + ToJSON(): byte[]
+  + Duration(): float
+}
+
+class Worker {
+  - id: string
+  - status: WorkerStatus
+  - completedTasks: int
+  - failedTasks: int
+  - avgExecutionTime: float
+  - successRate: float
+  - lastHealthCheck: time.Time
+  --
+  + ExecuteTask(task): error
+  + UpdateMetrics(): void
+  + HealthCheck(): bool
+  + GetStats(): WorkerStats
+}
+
+class Scheduler {
+  - taskClassifier: Model
+  - workerPredictor: Model
+  - durationEstimator: Model
+  - modelVersion: string
+  --
+  + ClassifyTask(task): string
+  + PredictWorker(task): string
+  + EstimateDuration(task): float
+  + Schedule(task): SchedulingDecision
+  + ReloadModels(): error
+}
+
+class TaskQueue {
+  - capacity: int
+  - buffer: channel
+  --
+  + Push(task): error
+  + Pop(): Task
+  + Size(): int
+  + IsFull(): bool
+}
+
+class Metrics {
+  - totalTasks: int
+  - successfulTasks: int
+  - failedTasks: int
+  - successRate: float
+  - avgExecutionTime: float
+  - workers: map
+  --
+  + UpdateTask(task): void
+  + GetStats(): Metrics
+  + Reset(): void
+}
+
+class API {
+  - port: int
+  - router: Router
+  --
+  + SubmitTask(task): response
+  + GetTaskStatus(taskID): Task
+  + GetMetrics(): Metrics
+  + Start(): void
+  + Stop(): void
+}
+
+Task --> Worker: "assigned to"
+Worker --> Scheduler: "gets decision from"
+TaskQueue --> Task: "stores"
+API --> TaskQueue: "pushes tasks to"
+API --> Metrics: "updates"
+Scheduler --> Metrics: "affects"
+
+@enduml
