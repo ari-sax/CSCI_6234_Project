@@ -1,0 +1,91 @@
+@startuml ActivityDiagram
+!theme plain
+
+start
+  :Client Submits Task;
+  note right: POST /api/tasks\nwith task metadata
+
+:API Receives Request;
+  
+:Validate Input Parameters;
+
+if (Valid Input?) then (No)
+  :Return Error 400;
+  :Bad Request;
+  stop
+else (Yes)
+endif
+
+:Create Task Object;
+  note right: Generate UUID\nSet initial status
+
+:Store Task in Memory;
+
+:Add Task to Queue;
+  note right: Push to buffered\nchannel (capacity: 1000)
+
+if (Queue Full?) then (Yes)
+  :Return Error 503;
+  :Service Unavailable;
+  stop
+else (No)
+endif
+
+:Persist Task to Database;
+  note right: Save to SQLite\nwith QUEUED status
+
+:Return Task ID to Client;
+  note right: HTTP 202 Accepted\nwith task_id
+
+:Task Enters Queue;
+
+fork
+  :Worker 1-5 Pulls Task;
+    note right: Goroutine pulls from\nchannel (FIFO order)
+
+  :Worker Calls Scheduler API;
+    note right: POST /predict-schedule\nwith task metadata
+
+  :Scheduler Classifies Task;
+    note right: CPU-heavy?\nIO-heavy?\nML-intensive?
+
+  :Scheduler Predicts Worker;
+    note right: ML model predicts\nbest worker based on\ntask and load
+
+  :Scheduler Estimates Duration;
+    note right: Predicts execution\ntime in seconds
+
+  :Worker Receives Decision;
+
+  :Update Task Status to ASSIGNED;
+
+  :Execute Task on Worker;
+    note right: Simulate execution\n(sleep for predicted duration)
+
+  :Record Actual Results;
+    note right: actual_duration\nsuccess status
+
+  :Update Task Status to COMPLETED;
+
+fork again
+  :Metrics Collector Updates;
+    note right: Increment counters\nUpdate success rate
+
+fork again
+  :Health Monitor Checks;
+    note right: Monitor worker status\nLog events
+
+fork again
+  :Store Execution Results;
+    note right: Save to database\nfor feedback loop
+
+end fork
+
+:All Processing Complete;
+
+:Return Metrics on Request;
+  note right: GET /api/metrics\nshows all stats
+
+stop
+
+@enduml
