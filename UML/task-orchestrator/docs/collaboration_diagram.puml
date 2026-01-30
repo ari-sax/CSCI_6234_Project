@@ -1,0 +1,28 @@
+@startuml CollaborationDiagram
+!theme plain
+
+object Client
+object API
+object Queue
+object Workers
+object Scheduler
+object Database
+object Metrics
+object Monitor
+
+Client -- API: 1: POST /api/tasks
+API -- Queue: 2: Push Task
+API -- Metrics: 3: Update Count
+Queue -- Workers: 4: Pull Task
+Workers -- Scheduler: 5: POST /predict
+Scheduler -- Workers: 6: Decision
+Workers -- Database: 7: Store Result
+API -- Database: 8: Fetch Task
+Database -- Metrics: 9: Update Stats
+Workers -- Monitor: 10: Health Report
+Monitor -- Database: 11: Log Event
+Client -- Metrics: 12: GET /api/metrics
+API -- Client: 13: task_id (202)
+Scheduler -- Database: 14: Feedback Loop
+
+@enduml
