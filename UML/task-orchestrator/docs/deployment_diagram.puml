@@ -1,0 +1,28 @@
+@startuml DeploymentDiagram
+!theme plain
+
+artifact "Go Binary\n(task-orchestrator)" as GoBinary
+artifact "Python App\n(scheduler)" as PyApp
+
+node "Server Machine" {
+  component [Go Backend\n:8080] as GoServer
+  component [Python Scheduler\n:5000] as PyServer
+}
+
+node "Database Server" {
+  database [SQLite DB] as SQLite
+}
+
+node "Client Machine" {
+  component [Web Client] as WebClient
+  component [CLI Client] as CLIClient
+}
+
+GoBinary --> GoServer: deploys
+PyApp --> PyServer: deploys
+GoServer --> SQLite: reads/writes
+PyServer --> GoServer: HTTP calls
+WebClient --> GoServer: REST API
+CLIClient --> GoServer: REST API
+
+@enduml
