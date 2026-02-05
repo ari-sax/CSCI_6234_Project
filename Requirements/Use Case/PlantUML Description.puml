@@ -1,0 +1,42 @@
+@startuml UseCaseDiagram
+!theme plain
+
+left to right direction
+skinparam packageStyle rectangle
+
+actor User as user
+actor Admin as admin
+actor "Worker Nodes" as workers
+actor "ML Scheduler" as scheduler
+
+rectangle "Task Orchestrator System" {
+  usecase "Submit Task" as UC1
+  usecase "View Task Status" as UC2
+  usecase "Get System Metrics" as UC3
+  usecase "Classify Tasks" as UC4
+  usecase "Predict Worker" as UC5
+  usecase "Execute Tasks" as UC6
+  usecase "Monitor Workers" as UC7
+  usecase "Handle Failures" as UC8
+  usecase "Learn Results" as UC9
+
+  user --> UC1
+  user --> UC2
+  user --> UC3
+  
+  admin --> UC7
+  admin --> UC8
+  admin --> UC9
+
+  UC1 ..> UC4 : <<include>>
+  UC1 ..> UC5 : <<include>>
+  UC1 ..> UC6 : <<include>>
+  UC3 ..> UC9 : <<include>>
+
+  UC6 --> workers
+  UC4 --> scheduler
+  UC5 --> scheduler
+  UC9 --> scheduler
+}
+
+@enduml
