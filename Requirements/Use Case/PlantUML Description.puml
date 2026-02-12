@@ -1,42 +1,133 @@
 @startuml UseCaseDiagram
 !theme plain
 
+' Setting layout for horizontal readability with long notes
 left to right direction
 skinparam packageStyle rectangle
 
-actor User as user
-actor Admin as admin
-actor "Worker Nodes" as workers
-actor "ML Scheduler" as scheduler
+' --- ACTORS ---
+' Corrected: Using standard solid lines (Associations) for all actor connections 
+
+actor "User / Developer" as user
+note left of user
+  The User/Developer is the primary human actor responsible for initiating the system workflow. 
+  They define task parameters such as priority and resource requirements, submit these 
+  workloads for execution, and track the real-time lifecycle and status of their specific 
+  tasks via the monitoring dashboard[cite: 6, 888].
+end note
+
+actor "System Admin" as admin
+note left of admin
+  The System Admin is a primary human actor focused on the operational stability and 
+  monitoring of the entire cluster. Their responsibilities include tracking worker 
+  availability, managing system-level metrics, and intervening in cases of critical 
+  execution failures that require manual resource re-allocation[cite: 888, 101].
+end note
+
+actor "Worker Nodes" as workers << System >>
+note right of workers
+  Worker Nodes are secondary system actors representing the high-performance Go-based 
+  execution units. They pull tasks from the distributed queue, execute the assigned 
+  computational workloads concurrently using goroutines, and report execution logs 
+  and resource usage back to the database[cite: 26, 30, 894].
+end note
+
+actor "ML Scheduler" as scheduler << System >>
+note right of scheduler
+  The ML Scheduler is a secondary system actor powered by Python that serves as the 
+  intelligence layer. It consumes historical data to perform real-time classification 
+  and predicts the most efficient worker node placement based on current load and 
+  task complexity[cite: 24, 38, 896].
+end note
+
+' --- SYSTEM SCOPE ---
 
 rectangle "Task Orchestrator System" {
-  usecase "Submit Task" as UC1
-  usecase "View Task Status" as UC2
-  usecase "Get System Metrics" as UC3
-  usecase "Classify Tasks" as UC4
-  usecase "Predict Worker" as UC5
-  usecase "Execute Tasks" as UC6
-  usecase "Monitor Workers" as UC7
-  usecase "Handle Failures" as UC8
-  usecase "Learn Results" as UC9
-
-  user --> UC1
-  user --> UC2
-  user --> UC3
   
-  admin --> UC7
-  admin --> UC8
-  admin --> UC9
+  usecase "Submit Task" as UC1
+  note bottom of UC1
+    This use case serves as the primary ingress point where the orchestrator receives 
+    and validates task metadata (JSON). It initiates the workflow by placing the 
+    validated request into a high-concurrency queue[cite: 84, 91, 136].
+  end note
 
+  usecase "View Task Status" as UC2
+  note bottom of UC2
+    Enables granular tracking of a task's journey, providing transparency into its 
+    current state—whether it is pending, running, or completed. It allows users to 
+    identify which specific worker node is processing their workload[cite: 89, 249].
+  end note
+
+  usecase "Get System Metrics" as UC3
+  note bottom of UC3
+    Aggregates execution data into consumable performance telemetry. This allows the 
+    User or Admin to analyze system health, including throughput, average wait times, 
+    and the overall success-to-failure ratio[cite: 250, 286].
+  end note
+
+  usecase "Classify Tasks" as UC4
+  note bottom of UC4
+    An intelligent backend process where the ML model parses task attributes to 
+    categorize a workload as CPU-bound, I/O-bound, or ML-intensive, ensuring the 
+    scheduler understands the underlying resource requirements[cite: 106, 114].
+  end note
+
+  usecase "Predict Worker" as UC5
+  note bottom of UC5
+    The core decision-making logic that matches a classified task to the optimal 
+    worker node. It aims to maximize cluster efficiency by avoiding bottlenecks 
+    and balancing the computational load across all active nodes[cite: 115, 400].
+  end note
+
+  usecase "Execute Tasks" as UC6
+  note bottom of UC6
+    The physical processing phase where a Go-based worker executes the task logic. 
+    This use case manages the execution environment, captures standard logs, and 
+    monitors for completion or hardware resource exhaustion[cite: 63, 139].
+  end note
+
+  usecase "Monitor Workers" as UC7
+  note bottom of UC7
+    A maintenance use case that tracks the 'heartbeat' and resource saturation of each 
+    active worker. It ensures the system has an accurate, real-time view of 
+    available CPU and memory capacity across the cluster[cite: 64, 283].
+  end note
+
+  usecase "Handle Failures" as UC8
+  note bottom of UC8
+    Manages the detection and resolution of system anomalies. When a worker node or 
+    task fails, this use case facilitates error logging and triggers logic to 
+    reassign the task to a healthy node[cite: 99, 102].
+  end note
+
+  usecase "Learn Results" as UC9
+  note bottom of UC9
+    The automated feedback loop for the AI engine. It pipes actual execution 
+    performance data back into the Python training pipeline, allowing the system 
+    to refine its predictive models and improve accuracy over time[cite: 144, 477].
+  end note
+
+  ' --- ASSOCIATIONS (Solid Lines) ---
+  user -- UC1
+  user -- UC2
+  user -- UC3
+  
+  admin -- UC7
+  admin -- UC8
+  
+  workers -- UC6
+  
+  scheduler -- UC4
+  scheduler -- UC5
+  scheduler -- UC9
+
+  ' --- RELATIONSHIPS (Corrected Include Logic) ---
+  ' Submission triggers automated intelligence [cite: 137]
   UC1 ..> UC4 : <<include>>
   UC1 ..> UC5 : <<include>>
-  UC1 ..> UC6 : <<include>>
-  UC3 ..> UC9 : <<include>>
-
-  UC6 --> workers
-  UC4 --> scheduler
-  UC5 --> scheduler
-  UC9 --> scheduler
+  
+  ' Execution completion automatically triggers the learning loop [cite: 140, 144]
+  UC6 ..> UC9 : <<include>>
 }
 
 @enduml
