@@ -1,0 +1,100 @@
+@startuml robustness_view_task_status
+!theme plain
+title Robustness Diagram: View Task Status
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+actor "User / Developer" as User
+boundary "Task Status API" as StatusAPI
+control "Status Query Controller" as StatusController
+entity "Task Database" as TaskDB
+entity "Execution Records DB" as ExecDB
+entity "System Metrics Cache" as MetricsCache
+
+User --> StatusAPI : 1: GET /task/{taskId}
+StatusAPI --> StatusController : 2: getTaskStatus(taskId)
+StatusController --> TaskDB : 3: queryTaskMetadata(taskId)
+TaskDB --> TaskDB : 4: lookup task record
+TaskDB --> StatusController : 5: {taskId, status, \ncreated_at, updated_at}
+
+StatusController --> ExecDB : 6: queryExecutionRecord(taskId)
+ExecDB --> ExecDB : 7: find execution if completed
+ExecDB --> StatusController : 8: {predicted_type, actual_type,\npredicted_worker, assigned_worker,\npredicted_duration, actual_duration,\nconfidence, latency, result}
+
+par Status Assembly
+  StatusController --> StatusController : 9a: buildBaseStatus()
+  StatusController --> StatusController : 10a: include predictions vs actuals
+else Metrics Inclusion
+  StatusController --> MetricsCache : 9b: getMetricsSnapshot()
+  MetricsCache --> StatusController : 10b: {system_state, uptime, health}
+end
+
+StatusController --> StatusController : 11: formatResponse()
+
+alt Task Completed
+  StatusController --> StatusAPI : 12a: {\n  taskId, status: "COMPLETED",\n  predicted_type, actual_type,\n  predicted_worker, assigned_worker,\n  actual_duration, result: "SUCCESS"\n}
+else Task Running
+  StatusController --> StatusAPI : 12b: {\n  taskId, status: "RUNNING",\n  progress_percent,\n  assigned_worker,\n  elapsed_time\n}
+else Task Pending
+  StatusController --> StatusAPI : 12c: {\n  taskId, status: "PENDING",\n  position_in_queue,\n  estimated_wait_time\n}
+end
+
+StatusAPI --> User : 13: HTTP 200 + Task Status JSON
+
+note right of User
+  User checks task
+  progress and
+  final results
+end note
+
+note right of StatusAPI
+  Boundary object
+  Task Status REST API
+  GET /task/{taskId}
+  Returns task details
+end note
+
+note right of StatusController
+  Control logic that:
+  - Queries task data
+  - Gets execution record
+  - Retrieves metrics
+  - Compares predictions
+    vs actual
+  - Formats response
+end note
+
+note right of TaskDB
+  Entity object
+  Task Database:
+  - Task ID
+  - Status (pending/running/completed)
+  - Created timestamp
+  - Updated timestamp
+  - Task metadata
+end note
+
+note right of ExecDB
+  Entity object
+  Execution Records:
+  - Predicted vs actual type
+  - Predicted vs actual worker
+  - Predicted vs actual duration
+  - Confidence level
+  - Actual execution time
+  - Task result/output
+end note
+
+note right of MetricsCache
+  Entity object
+  Current metrics:
+  - Success rate (87%)
+  - Prediction accuracy (100%)
+  - System health status
+  - Worker availability
+  - Queue depth
+end note
+
+@enduml
