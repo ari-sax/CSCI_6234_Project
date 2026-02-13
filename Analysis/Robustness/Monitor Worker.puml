@@ -1,0 +1,93 @@
+@startuml robustness_monitor_workers
+!theme plain
+title Robustness Diagram: Monitor Workers
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+actor "System Admin" as Admin
+boundary "Monitoring Dashboard" as Dashboard
+control "Health Monitor" as HealthMonitor
+entity "Worker Metrics" as WorkerMetrics
+entity "Alert Manager" as AlertManager
+entity "Health Log" as HealthLog
+
+Admin --> Dashboard : 1: viewWorkerStatus()
+Dashboard --> HealthMonitor : 2: collectMetrics()
+HealthMonitor --> WorkerMetrics : 3: getWorkerStatus()\n(all 5 workers)
+WorkerMetrics --> WorkerMetrics : 4: heartbeat check
+WorkerMetrics --> HealthMonitor : 5: {worker_id, cpu, memory, \nqueue_depth, uptime}
+
+par Metrics Processing
+  HealthMonitor --> HealthMonitor : 6a: calculateAverages()
+  HealthMonitor --> HealthLog : 7a: logMetrics()
+  HealthLog --> HealthLog : 8a: store timestamp + data
+else Alert Evaluation
+  HealthMonitor --> AlertManager : 6b: evaluateThresholds()
+  AlertManager --> AlertManager : 7b: check if cpu>80% or memory>85%
+  
+  alt Alert Triggered
+    AlertManager --> AlertManager : 8b: generateAlert()
+    AlertManager --> HealthMonitor : 9b: alert_level = WARNING/CRITICAL
+  else No Alert
+    AlertManager --> HealthMonitor : 10b: all_normal
+  end
+end
+
+HealthMonitor --> Dashboard : 11: {metrics, alerts, status}
+Dashboard --> Dashboard : 12: renderDashboard()
+Dashboard --> Admin : 13: realtime monitoring view\n(Backend: RUNNING, ML: RUNNING,\nSuccess: 87%, Accuracy: 100%)
+
+note right of Admin
+  System Admin monitors
+  worker node health
+  in real-time
+end note
+
+note right of Dashboard
+  Boundary object
+  Monitoring dashboard UI
+  at localhost:5000
+  Shows live metrics
+end note
+
+note right of HealthMonitor
+  Control logic that:
+  - Collects heartbeats
+  - Aggregates metrics
+  - Evaluates thresholds
+  - Generates alerts
+end note
+
+note right of WorkerMetrics
+  Entity object
+  Real-time worker metrics:
+  - CPU usage
+  - Memory usage
+  - Task queue depth
+  - Response time
+  - Uptime percentage
+  - Success rate
+end note
+
+note right of AlertManager
+  Entity object
+  Alert management:
+  - Sets thresholds
+  - Generates alerts
+  - CPU > 80% = warning
+  - Memory > 85% = warning
+  - Heartbeat timeout = critical
+end note
+
+note right of HealthLog
+  Entity object
+  Historical health data
+  - Timestamp
+  - Metrics snapshot
+  - Alert history
+  - Trend analysis
+end note
+
+@enduml
