@@ -1,0 +1,88 @@
+@startuml robustness_get_system_metrics
+!theme plain
+title Robustness Diagram: Get System Metrics
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+actor "User / Admin" as User
+boundary "Metrics API" as MetricsAPI
+control "Metrics Aggregator" as MetricsAgg
+entity "Execution Database" as ExecDB
+entity "System Statistics" as SystemStats
+entity "Model Performance DB" as ModelPerf
+
+User --> MetricsAPI : 1: GET /stats
+MetricsAPI --> MetricsAgg : 2: aggregateMetrics()
+MetricsAgg --> ExecDB : 3: queryExecutionData()
+ExecDB --> ExecDB : 4: count tasks, calculate rates
+ExecDB --> MetricsAgg : 5: {total_tasks, success_count, \nfail_count, avg_duration}
+
+MetricsAgg --> SystemStats : 6: getSystemStatus()
+SystemStats --> SystemStats : 7: query current state
+SystemStats --> MetricsAgg : 8: {backend_status: RUNNING,\nml_service_status: RUNNING,\nworker_count: 5}
+
+MetricsAgg --> ModelPerf : 9: getModelMetrics()
+ModelPerf --> ModelPerf : 10: analyze model performance
+ModelPerf --> MetricsAgg : 11: {models_loaded: 3/3,\ndrift_status: NO_DRIFT,\nprediction_accuracy: 100%}
+
+MetricsAgg --> MetricsAgg : 12: calculateDerivedMetrics()\n(success_rate: 87%,\navg_accuracy: 100%,\navg_latency: 100-150ms)
+
+MetricsAgg --> MetricsAgg : 13: compileReport()
+MetricsAgg --> MetricsAPI : 14: metrics_report (JSON)
+MetricsAPI --> User : 15: HTTP 200 + JSON\n{\n  "success_rate": "87%",\n  "prediction_accuracy": "100%",\n  "data_records": 1000,\n  "models_loaded": "3/3",\n  "drift_status": "No drift",\n  "auto_learning": "ENABLED"\n}
+
+note right of User
+  User or Admin
+  requests system
+  performance metrics
+end note
+
+note right of MetricsAPI
+  Boundary object
+  Metrics REST API
+  GET /stats endpoint
+  Returns JSON data
+end note
+
+note right of MetricsAgg
+  Control logic that:
+  - Queries execution DB
+  - Gets system status
+  - Retrieves ML metrics
+  - Calculates rates
+  - Compiles report
+end note
+
+note right of ExecDB
+  Entity object
+  Execution Database
+  1000+ records
+  Historical execution data
+  - Task completion rates
+  - Average durations
+  - Success metrics
+end note
+
+note right of SystemStats
+  Entity object
+  Current system state:
+  - Backend running/down
+  - ML Service status
+  - Worker count
+  - Queue depth
+  - Memory usage
+end note
+
+note right of ModelPerf
+  Entity object
+  ML Model Performance:
+  - Models loaded: 3/3
+  - Prediction accuracy: 100%
+  - Classification accuracy
+  - Drift detection status
+  - Retraining info
+end note
+
+@enduml
