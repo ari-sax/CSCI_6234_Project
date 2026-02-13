@@ -1,0 +1,106 @@
+@startuml robustness_handle_failures
+!theme plain
+title Robustness Diagram: Handle Failures
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+actor "System Admin" as Admin
+boundary "Failure Management UI" as FailureUI
+control "Failure Handler" as FailureHandler
+entity "Error Log" as ErrorLog
+entity "Recovery Manager" as RecoveryManager
+entity "Feedback Queue" as FeedbackQueue
+
+Admin --> FailureUI : 1: checkFailures()
+FailureUI --> FailureHandler : 2: getFailureReport()
+FailureHandler --> ErrorLog : 3: queryFailedTasks()
+ErrorLog --> FailureHandler : 4: {taskID, error_type, timestamp, worker}
+
+FailureHandler --> FailureHandler : 5: analyzeFailures()
+
+alt Failure Type Analysis
+  FailureHandler --> RecoveryManager : 6a: Task Execution Failure
+  RecoveryManager --> RecoveryManager : 7a: attemptAutomaticRestart()
+  
+  alt Auto Restart Success
+    RecoveryManager --> RecoveryManager : 8a: recovery_successful
+    RecoveryManager --> FailureHandler : 9a: status = RECOVERED
+  else Auto Restart Failed
+    RecoveryManager --> FailureHandler : 10a: status = MANUAL_ACTION_REQUIRED
+    FailureHandler --> Admin : 11a: ALERT: manual recovery needed
+  end
+else Worker Node Failure
+  FailureHandler --> RecoveryManager : 6b: Worker Unavailable
+  RecoveryManager --> RecoveryManager : 7b: markWorkerDown()
+  RecoveryManager --> RecoveryManager : 8b: reassignPendingTasks()
+  RecoveryManager --> FailureHandler : 9b: tasks_reassigned
+else System Component Failure
+  FailureHandler --> RecoveryManager : 6c: Component Down\n(ML Service, Backend, DB)
+  RecoveryManager --> RecoveryManager : 7c: attemptComponentRestart()
+  RecoveryManager --> FailureHandler : 8c: restart_initiated
+end
+
+FailureHandler --> ErrorLog : 12: logRecoveryAction()\n(for audit trail)
+ErrorLog --> ErrorLog : 13: store recovery details
+
+FailureHandler --> FeedbackQueue : 14: enqueueFeedback()\n(failure data for learning!)
+FeedbackQueue --> FailureHandler : 15: confirmed
+
+FailureUI --> Admin : 16: failure_report + recovery_status
+
+note right of Admin
+  System Admin handles
+  failures when automatic
+  recovery insufficient
+end note
+
+note right of FailureUI
+  Boundary object
+  Failure management UI
+  Shows failures and
+  recovery options
+end note
+
+note right of FailureHandler
+  Control logic that:
+  - Identifies failure type
+  - Initiates recovery
+  - Coordinates remediation
+  - Logs actions
+  - Sends failure data
+    to Learn Results
+end note
+
+note right of ErrorLog
+  Entity object
+  Error database:
+  - Failed task details
+  - Error messages
+  - Stack traces
+  - Worker info
+  - Timestamp
+  - Recovery actions taken
+end note
+
+note right of RecoveryManager
+  Entity object
+  Recovery strategies:
+  - Auto-restart logic
+  - Worker reassignment
+  - Component restart
+  - Circuit breaker
+  - Fallback options
+end note
+
+note right of FeedbackQueue
+  Entity object
+  Failure data queue
+  Failure data is sent
+  to Learn Results
+  System learns what
+  NOT to do!
+end note
+
+@enduml
