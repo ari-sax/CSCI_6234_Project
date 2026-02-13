@@ -1,0 +1,95 @@
+@startuml robustness_execute_tasks
+!theme plain
+title Robustness Diagram: Execute Tasks
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+actor "Task Scheduler" as Scheduler
+boundary "Worker API" as WorkerAPI
+control "Task Executor" as Executor
+entity "Task Execution Data" as ExecutionData
+entity "Feedback Queue" as FeedbackQueue
+entity "Execution Logs" as Logs
+
+Scheduler --> WorkerAPI : 1: assignTask(taskID, taskLogic)
+WorkerAPI --> Executor : 2: executeTask(task)
+Executor --> ExecutionData : 3: recordStartTime()
+ExecutionData --> Executor : 4: start_timestamp
+Executor --> Executor : 5: execute_task_logic()
+
+par Task Execution Branch
+  Executor --> Logs : 6a: log execution events
+  Logs --> Logs : 7a: store logs
+else Metrics Collection Branch
+  Executor --> ExecutionData : 6b: captureMetrics()\n(duration, cpu, memory, status)
+  ExecutionData --> Executor : 7b: metrics stored
+end
+
+Executor --> ExecutionData : 8: recordEndTime()
+ExecutionData --> Executor : 9: end_timestamp, total_duration
+Executor --> ExecutionData : 10: captureTaskOutput()
+ExecutionData --> ExecutionData : 11: store result data
+
+alt Task Success
+  Executor --> FeedbackQueue : 12: enqueueFeedback(taskID, success=true)
+  FeedbackQueue --> Executor : 13: queued
+else Task Failure
+  Executor --> FeedbackQueue : 14: enqueueFeedback(taskID, success=false, error)
+  FeedbackQueue --> Executor : 15: queued
+end
+
+Executor --> WorkerAPI : 16: sendAsyncCallback()\n(http post /feedback, non-blocking)
+WorkerAPI --> Scheduler : 17: execution_complete
+
+note right of Scheduler
+  Task Scheduler
+  assigns work to
+  available worker
+end note
+
+note right of WorkerAPI
+  Boundary object
+  Worker REST API
+  on Port 8080
+end note
+
+note right of Executor
+  Control logic that:
+  - Executes task logic
+  - Captures metrics
+  - Records execution
+  - Sends feedback
+  (async, non-blocking!)
+end note
+
+note right of ExecutionData
+  Entity object
+  Task Execution Data:
+  - Start/end time
+  - Duration (100-150ms)
+  - CPU usage
+  - Memory usage
+  - Success/failure
+  - Output results
+end note
+
+note right of FeedbackQueue
+  Entity object
+  Holds feedback
+  for Learn Results
+  Async queue
+  (5 concurrent workers)
+end note
+
+note right of Logs
+  Entity object
+  Comprehensive logs
+  - Execution events
+  - Resource usage
+  - Timestamps
+  - Error details
+end note
+
+@enduml
