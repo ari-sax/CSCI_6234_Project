@@ -1,0 +1,59 @@
+@startuml robustness_submit_task
+!theme plain
+title Robustness Diagram: Submit Task
+
+skinparam backgroundColor #FEFEFE
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+actor "User / Developer" as User
+boundary "Task API Gateway" as TaskAPI
+control "Task Submission Controller" as SubmitController
+entity "Task Queue" as TaskQueue
+entity "Task Database" as TaskDB
+
+User --> TaskAPI : 1: POST /api/tasks\n(task metadata)
+TaskAPI --> SubmitController : 2: validateAndSubmit(taskData)
+SubmitController --> TaskDB : 3: storeTaskMetadata(task)
+TaskDB --> SubmitController : 4: taskID, status
+SubmitController --> TaskQueue : 5: enqueueTask(taskID)
+TaskQueue --> SubmitController : 6: confirmation
+SubmitController --> TaskAPI : 7: taskID, submission status
+TaskAPI --> User : 8: HTTP 201\n{taskID, status, timestamp}
+
+note right of User
+  User submits a new task
+  with parameters like operation,
+  resource requirements,
+  and priority level
+end note
+
+note right of TaskAPI
+  REST API boundary object
+  handles HTTP requests
+  and responses
+end note
+
+note right of SubmitController
+  Control logic that:
+  - Validates input
+  - Generates task ID
+  - Coordinates storage
+  - Manages queue
+end note
+
+note right of TaskDB
+  Persistent storage
+  Entity object
+  Stores task metadata
+  SQLite database
+end note
+
+note right of TaskQueue
+  In-memory or
+  persistent queue
+  Entity object
+  Holds pending tasks
+end note
+
+@enduml
