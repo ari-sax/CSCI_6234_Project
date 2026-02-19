@@ -1,0 +1,565 @@
+@startuml domain_model_intelligent_task_orchestrator
+!theme plain
+title Domain Model: Intelligent Task Orchestrator System
+
+skinparam backgroundColor #FEFEFE
+skinparam classBackgroundColor #F0F8FF
+skinparam classBorderColor #4A90E2
+skinparam defaultFontName Arial
+skinparam defaultFontSize 11
+
+' ==========================================
+' CORE DOMAIN ENTITIES
+' ==========================================
+
+class Task {
+  - taskID: String (unique)
+  - operation: String (GET, POST, PUT, DELETE, PATCH, HEAD)
+  - parameters: Map<String, Object>
+  - status: TaskStatus (PENDING, RUNNING, COMPLETED, FAILED)
+  - createdTimestamp: Timestamp
+  - updatedTimestamp: Timestamp
+  - priority: Integer (1-10)
+  - resourceRequirements: ResourceRequirement
+  - payloadSize: Long (bytes)
+  --
+  + getTaskID(): String
+  + getStatus(): TaskStatus
+  + updateStatus(newStatus: TaskStatus): void
+  + getElapsedTime(): Long
+}
+
+class TaskStatus {
+  PENDING
+  RUNNING
+  COMPLETED
+  FAILED
+}
+
+Task --> TaskStatus : has
+
+class TaskClassification {
+  - classificationID: String
+  - task: Task
+  - predictedType: TaskType
+  - actualType: TaskType
+  - confidence: Double (0.0-1.0)
+  - timestamp: Timestamp
+  --
+  + isAccurate(): Boolean
+  + getConfidencePercent(): Double
+}
+
+class TaskType {
+  INTERACTIVE: "GET/HEAD operations, < 1000ms"
+  BATCH: "DELETE/POST/PUT operations"
+  LONGRUNNING: "> 1000ms latency"
+  HEAVY: "> 1MB payload"
+}
+
+TaskClassification --> TaskType : predictedType
+TaskClassification --> TaskType : actualType
+TaskClassification --> Task : classifies
+Task --> TaskType : can_be
+
+class WorkerPrediction {
+  - predictionID: String
+  - task: Task
+  - predictedWorkerID: String
+  - actualWorkerID: String
+  - estimatedDuration: Long (milliseconds)
+  - actualDuration: Long
+  - confidence: Double
+  - timestamp: Timestamp
+  --
+  + isAccurate(): Boolean
+  + getDurationError(): Long
+  + getAccuracy(): Double
+}
+
+WorkerPrediction --> Task : predicts_for
+
+class ExecutionRecord {
+  - executionID: String
+  - task: Task
+  - assignedWorker: WorkerNode
+  - startTime: Timestamp
+  - endTime: Timestamp
+  - duration: Long (milliseconds)
+  - cpuUsage: Double (percentage)
+  - memoryUsage: Long (bytes)
+  - status: ExecutionStatus (SUCCESS, FAILURE)
+  - errorMessage: String (optional)
+  - taskOutput: Object
+  - service: String (compute, storage, database, network, ml-service)
+  --
+  + isSuccessful(): Boolean
+  + getDuration(): Long
+  + getResourceUsage(): ResourceUsage
+  + getOutput(): Object
+}
+
+class ExecutionStatus {
+  SUCCESS
+  FAILURE
+}
+
+ExecutionRecord --> ExecutionStatus : status
+ExecutionRecord --> Task : executes
+ExecutionRecord --> WorkerNode : executed_by
+
+class WorkerNode {
+  - workerID: String (Worker-1 to Worker-5)
+  - status: WorkerStatus (ONLINE, OFFLINE, BUSY)
+  - cpuUsage: Double (percentage)
+  - memoryUsage: Long (bytes)
+  - queueDepth: Integer (pending tasks)
+  - successRate: Double (0.0-1.0)
+  - totalTasksProcessed: Integer
+  - totalTasksFailed: Integer
+  - uptime: Long (milliseconds)
+  - lastHeartbeat: Timestamp
+  --
+  + getStatus(): WorkerStatus
+  + isHealthy(): Boolean
+  + getSuccessRate(): Double
+  + updateHeartbeat(): void
+  + getAvailableCapacity(): Long
+  + assignTask(task: Task): Boolean
+}
+
+class WorkerStatus {
+  ONLINE: "Ready to accept tasks"
+  OFFLINE: "Not available"
+  BUSY: "Processing tasks"
+}
+
+WorkerNode --> WorkerStatus : has
+
+class MLModel {
+  - modelID: String (Classification, Prediction, Duration)
+  - modelType: ModelType
+  - accuracy: Double (0.0-1.0)
+  - version: Integer
+  - trainingDataSize: Integer
+  - lastRetrainedTime: Timestamp
+  - driftStatus: DriftStatus
+  - driftDetected: Boolean
+  --
+  + predict(input: Input): Prediction
+  + getAccuracy(): Double
+  + retrain(trainingData: List<ExecutionRecord>): void
+  + checkDrift(): DriftStatus
+  + isReadyForProduction(): Boolean
+}
+
+class ModelType {
+  CLASSIFICATION: "Task type classification"
+  PREDICTION: "Worker node prediction"
+  DURATION: "Duration estimation"
+}
+
+class DriftStatus {
+  NO_DRIFT: "Model performing well"
+  MINOR_DRIFT: "Small performance degradation"
+  MAJOR_DRIFT: "Significant accuracy loss"
+}
+
+MLModel --> ModelType : has_type
+MLModel --> DriftStatus : drift_status
+
+class Prediction {
+  - predictionID: String
+  - input: Input
+  - output: Object
+  - confidence: Double
+  - timestamp: Timestamp
+  --
+  + getConfidence(): Double
+  + isHighConfidence(): Boolean
+}
+
+Prediction --> MLModel : generated_by
+
+class ResourceRequirement {
+  - cpuCores: Integer
+  - memoryMB: Long
+  - networkBandwidth: Long (Mbps)
+  - storageGB: Long
+  - estimatedDuration: Long (milliseconds)
+  --
+  + getTotalResources(): Long
+  + isResourcesAvailable(worker: WorkerNode): Boolean
+  + getFeasibility(): Double
+}
+
+Task --> ResourceRequirement : specifies
+
+class SystemMetrics {
+  - metricsID: String
+  - timestamp: Timestamp
+  - successRate: Double (0.0-1.0)
+  - averageLatency: Long (milliseconds)
+  - predictedAccuracy: Double
+  - dataRecordsCount: Integer
+  - modelsLoaded: Integer
+  - activeTasks: Integer
+  - queueDepth: Integer
+  - averageQueueWaitTime: Long
+  --
+  + getSuccessRatePercent(): Double
+  + getAverageLatency(): Long
+  + getPredictionAccuracy(): Double
+  + getDriftStatus(): String
+  + isSystemHealthy(): Boolean
+}
+
+class SystemStatus {
+  - timestamp: Timestamp
+  - backendStatus: ServiceStatus
+  - mlServiceStatus: ServiceStatus
+  - databaseStatus: ServiceStatus
+  - workerNodesOnline: Integer
+  - totalWorkerNodes: Integer
+  --
+  + isSystemOperational(): Boolean
+  + getOperationalWorkerCount(): Integer
+  + getSystemHealth(): SystemHealth
+}
+
+class ServiceStatus {
+  RUNNING
+  DOWN
+  DEGRADED
+}
+
+SystemStatus --> ServiceStatus : backendStatus
+SystemStatus --> ServiceStatus : mlServiceStatus
+SystemStatus --> ServiceStatus : databaseStatus
+
+class ErrorRecord {
+  - errorID: String
+  - errorType: String
+  - severity: ErrorSeverity
+  - timestamp: Timestamp
+  - affectedResource: String (task, worker, service)
+  - errorMessage: String
+  - stackTrace: String (optional)
+  - recoveryAttempted: Boolean
+  - recoverySuccessful: Boolean
+  --
+  + getSeverity(): ErrorSeverity
+  + isRecoverable(): Boolean
+  + requiresManualIntervention(): Boolean
+}
+
+class ErrorSeverity {
+  LOW: "Can be retried"
+  MEDIUM: "Requires attention"
+  CRITICAL: "Manual intervention needed"
+}
+
+ErrorRecord --> ErrorSeverity : severity
+
+class FeedbackData {
+  - feedbackID: String
+  - executionRecord: ExecutionRecord
+  - classification: TaskClassification
+  - prediction: WorkerPrediction
+  - timestamp: Timestamp
+  - processedForLearning: Boolean
+  - learningResults: LearningResult
+  --
+  + getCompleteExecutionData(): ExecutionData
+  + isReadyForLearning(): Boolean
+  + markAsProcessed(): void
+}
+
+FeedbackData --> ExecutionRecord : contains
+FeedbackData --> TaskClassification : contains
+FeedbackData --> WorkerPrediction : contains
+
+class LearningResult {
+  - resultID: String
+  - feedback: FeedbackData
+  - patternsIdentified: List<String>
+  - modelsImproved: List<MLModel>
+  - driftDetected: Boolean
+  - modelRetrainingTriggered: Boolean
+  - timestamp: Timestamp
+  - previousAccuracy: Double
+  - newAccuracy: Double
+  --
+  + getAccuracyImprovement(): Double
+  + wereModelsRetrained(): Boolean
+  + getDriftSummary(): String
+}
+
+LearningResult --> FeedbackData : analyzes
+LearningResult --> MLModel : improves
+
+class TaskQueue {
+  - queueID: String
+  - tasks: List<Task>
+  - queueSize: Integer
+  - averageWaitTime: Long
+  - priority: PriorityStrategy
+  --
+  + enqueue(task: Task): void
+  + dequeue(): Task
+  + getSize(): Integer
+  + getAverageWaitTime(): Long
+  + prioritize(task: Task): void
+}
+
+class PriorityStrategy {
+  FIFO: "First In First Out"
+  PRIORITY: "By task priority"
+  SLA: "By SLA requirements"
+}
+
+TaskQueue --> PriorityStrategy : uses
+TaskQueue --> Task : contains
+
+class ExecutionEnvironment {
+  - environmentID: String
+  - workers: List<WorkerNode>
+  - totalCpuCapacity: Integer
+  - totalMemoryCapacity: Long
+  - networkBandwidth: Long
+  - currentUtilization: Double
+  --
+  + getAvailableCapacity(): Long
+  + getUtilization(): Double
+  + addWorker(worker: WorkerNode): void
+  + removeWorker(worker: WorkerNode): void
+  + canAcceptTask(task: Task): Boolean
+}
+
+ExecutionEnvironment --> WorkerNode : contains
+
+class MonitoringAlert {
+  - alertID: String
+  - severity: AlertSeverity
+  - message: String
+  - timestamp: Timestamp
+  - condition: String (e.g., "CPU > 80%")
+  - resolvedTime: Timestamp (optional)
+  - status: AlertStatus
+  --
+  + isResolved(): Boolean
+  + escalate(): void
+  + resolve(): void
+  + requiresManualAction(): Boolean
+}
+
+class AlertSeverity {
+  INFO: "Informational"
+  WARNING: "Needs attention"
+  CRITICAL: "Immediate action"
+}
+
+class AlertStatus {
+  ACTIVE
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+MonitoringAlert --> AlertSeverity : severity
+MonitoringAlert --> AlertStatus : status
+
+class HealthMetrics {
+  - metricsID: String
+  - worker: WorkerNode
+  - timestamp: Timestamp
+  - cpuUsage: Double
+  - memoryUsage: Double
+  - responseTime: Long
+  - successRate: Double
+  - errorCount: Integer
+  --
+  + isWorkerHealthy(): Boolean
+  + getHealthScore(): Double
+  + generateAlert(): MonitoringAlert
+}
+
+HealthMetrics --> WorkerNode : monitors
+
+class PerformanceHistory {
+  - historyID: String
+  - entity: String (task, worker, system)
+  - metrics: List<SystemMetrics>
+  - timeWindow: TimeWindow
+  - trends: List<Trend>
+  --
+  + getAverageMetrics(): SystemMetrics
+  + getTrend(): Trend
+  + predictFuturePerformance(): Prediction
+}
+
+class TimeWindow {
+  START_TIME: Timestamp
+  END_TIME: Timestamp
+}
+
+class Trend {
+  IMPROVING: "Performance getting better"
+  STABLE: "Consistent performance"
+  DEGRADING: "Performance declining"
+}
+
+PerformanceHistory --> SystemMetrics : contains
+PerformanceHistory --> Trend : has
+
+' ==========================================
+' RELATIONSHIPS AND AGGREGATIONS
+' ==========================================
+
+ExecutionEnvironment --> ExecutionRecord : tracks
+
+SystemMetrics --> Task : measures
+SystemMetrics --> WorkerNode : analyzes
+SystemMetrics --> MLModel : evaluates
+
+FeedbackData --> MLModel : triggers_learning_for
+
+ExecutionRecord --> ErrorRecord : may_generate
+
+WorkerNode --> HealthMetrics : generates
+
+MonitoringAlert --> ExecutionEnvironment : alerts_on
+
+PerformanceHistory --> WorkerNode : tracks
+PerformanceHistory --> Task : analyzes
+
+' ==========================================
+' NOTES AND DOCUMENTATION
+' ==========================================
+
+note right of Task
+  **Core Entity**
+  
+  Represents a computational task
+  submitted to the system.
+  
+  Status: PENDING → RUNNING → COMPLETED/FAILED
+  
+  Uniquely identified by taskID
+end note
+
+note right of TaskClassification
+  **ML Output Tracking**
+  
+  Records both predicted and actual
+  task classification for ML learning.
+  
+  Tracks prediction accuracy
+  over time.
+end note
+
+note right of WorkerPrediction
+  **ML Output Tracking**
+  
+  Records worker selection predictions
+  and compares with actual assignment.
+  
+  Tracks prediction accuracy
+  and duration estimation errors.
+end note
+
+note right of ExecutionRecord
+  **Execution Tracking**
+  
+  Complete execution history with:
+  - Resource usage
+  - Duration
+  - Status
+  - Output
+  
+  1000+ records currently stored.
+end note
+
+note right of MLModel
+  **Intelligence Core**
+  
+  3 ML Models currently active:
+  1. Classification (100% accuracy)
+  2. Prediction (100% accuracy)
+  3. Duration (100% accuracy)
+  
+  Automatic drift detection
+  and retraining enabled.
+end note
+
+note right of FeedbackData
+  **Learning Pipeline**
+  
+  Automatic feedback collection
+  from task execution.
+  
+  Triggers Learn Results
+  automatically (no manual trigger).
+  
+  Non-blocking async callback.
+end note
+
+note right of LearningResult
+  **Intelligence Improvement**
+  
+  System learns from every execution
+  in background process.
+  
+  Identifies patterns
+  Detects drift
+  Retrains models
+  Improves accuracy
+end note
+
+note right of WorkerNode
+  **Execution Unit**
+  
+  5 concurrent workers in system.
+  
+  Tracks health metrics:
+  - CPU usage
+  - Memory usage
+  - Success rate
+  - Uptime
+  
+  Automatic heartbeat monitoring.
+end note
+
+note right of SystemMetrics
+  **Performance Measurement**
+  
+  Current system state:
+  - Success Rate: 87%
+  - Prediction Accuracy: 100%
+  - Data Records: 1000+
+  - Models Loaded: 3/3
+  - Drift Status: No drift
+  
+  Real-time monitoring enabled.
+end note
+
+note bottom of Task
+  **Domain Model: Intelligent Task Orchestrator**
+  
+  This domain model represents the core entities and relationships
+  in your intelligent task scheduling system.
+  
+  Key Features:
+  ✓ Automatic ML learning from execution feedback
+  ✓ Real-time performance monitoring
+  ✓ Worker health tracking
+  ✓ Comprehensive error handling
+  ✓ Complete audit trail via execution records
+  ✓ Drift detection and model retraining
+  
+  Data Records: 1000+ execution traces
+  ML Accuracy: 100% prediction accuracy
+  System Performance: 87% success rate
+  Concurrent Workers: 5
+end note
+
+@enduml
