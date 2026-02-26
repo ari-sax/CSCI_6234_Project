@@ -1,0 +1,42 @@
+@startuml
+title Activity Diagram: Handle Failures
+skinparam monochrome true
+skinparam shadowing false
+
+start
+
+partition "Execution Monitor" {
+  :1. Detect execution failure event;
+  :2. Capture error details (stack trace, codes);
+}
+
+partition "Database" {
+  :3. Create ErrorRecord;
+}
+
+partition "Failure Handler" {
+  :4. Classify failure (transient vs permanent);
+  if (5. Transient failure?) then (Yes)
+    :6. Check retry policy (retries remaining?);
+    if (7. Retries remaining?) then (Yes)
+      :8. Increment retry count;
+      :9. Re-enqueue Task to TaskQueue;
+      :10. Create MonitoringAlert (WARNING);
+    else (No)
+      :8a. Mark TaskStatus = FAILED;
+      :9a. Create MonitoringAlert (CRITICAL);
+    endif
+  else (No)
+    :6a. Mark TaskStatus = FAILED;
+    :7a. Create MonitoringAlert (CRITICAL);
+  endif
+}
+
+note
+TEXT DESCRIPTION (step-to-action mapping):
+1) Step numbers in each action (e.g., "1.", "2.", ...) correspond to the written steps here.
+2) Each written step corresponds to exactly one action in the diagram, in the same order.
+end note
+
+stop
+@enduml
