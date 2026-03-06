@@ -1,0 +1,56 @@
+@startuml UC7_ClassifyTasks
+title Sequence Diagram: Classify Tasks\n(«include» from Submit Task)
+
+participant "TaskQueue" as TQ
+participant "Task" as T
+participant "MLModel" as ML
+participant "Prediction" as P
+participant "TaskClassification" as TC
+participant "ResourceRequirement" as RR
+
+TQ -> T : getTaskID(): String
+activate T
+T --> TQ : taskID: String
+deactivate T
+
+TQ -> T : getStatus(): TaskStatus
+activate T
+T --> TQ : status: TaskStatus
+deactivate T
+
+TQ -> RR : getTotalResources(): Long
+activate RR
+RR --> TQ : totalResources: Long
+deactivate RR
+
+TQ -> ML : predict(input: Input): Prediction
+activate ML
+ML -> ML : getAccuracy(): Double
+ML -> P : getConfidence(): Double
+activate P
+P --> ML : confidence: Double
+deactivate P
+ML --> TQ : prediction: Prediction
+deactivate ML
+
+TQ -> ML : isReadyForProduction(): Boolean
+activate ML
+ML --> TQ : ready: Boolean
+deactivate ML
+
+TQ -> TC : isAccurate(): Boolean
+activate TC
+TC --> TQ : accurate: Boolean
+deactivate TC
+
+TQ -> TC : getConfidencePercent(): Double
+activate TC
+TC --> TQ : confidencePercent: Double
+deactivate TC
+
+TQ -> T : updateStatus(PENDING): void
+activate T
+T --> TQ : void
+deactivate T
+
+@enduml
