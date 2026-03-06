@@ -1,0 +1,75 @@
+@startuml UC9_LearnResults
+title Sequence Diagram: Learn Results
+
+participant "ExecutionRecord" as ER
+participant "FeedbackData" as FD
+participant "MLModel" as ML
+participant "LearningResult" as LR
+participant "TaskClassification" as TC
+participant "WorkerPrediction" as WP
+participant "PerformanceHistory" as PH
+
+ER -> FD : isReadyForLearning(): Boolean
+activate FD
+FD --> ER : ready: Boolean
+deactivate FD
+
+ER -> FD : getCompleteExecutionData(): ExecutionData
+activate FD
+FD --> ER : executionData: ExecutionData
+deactivate FD
+
+ER -> FD : markAsProcessed(): void
+activate FD
+FD --> ER : void
+deactivate FD
+
+ER -> ML : retrain(trainingData: List<ExecutionRecord>): void
+activate ML
+ML -> ML : checkDrift(): DriftStatus
+ML -> ML : getAccuracy(): Double
+ML -> ML : isReadyForProduction(): Boolean
+ML --> ER : void
+deactivate ML
+
+ER -> TC : isAccurate(): Boolean
+activate TC
+TC --> ER : accurate: Boolean
+deactivate TC
+
+ER -> WP : isAccurate(): Boolean
+activate WP
+WP --> ER : accurate: Boolean
+deactivate WP
+
+ER -> WP : getDurationError(): Long
+activate WP
+WP --> ER : durationError: Long
+deactivate WP
+
+ER -> LR : getAccuracyImprovement(): Double
+activate LR
+LR --> ER : improvement: Double
+deactivate LR
+
+ER -> LR : wereModelsRetrained(): Boolean
+activate LR
+LR --> ER : retrained: Boolean
+deactivate LR
+
+ER -> LR : getDriftSummary(): String
+activate LR
+LR --> ER : driftSummary: String
+deactivate LR
+
+ER -> PH : getAverageMetrics(): SystemMetrics
+activate PH
+PH --> ER : averageMetrics: SystemMetrics
+deactivate PH
+
+ER -> PH : getTrend(): Trend
+activate PH
+PH --> ER : trend: Trend
+deactivate PH
+
+@enduml
