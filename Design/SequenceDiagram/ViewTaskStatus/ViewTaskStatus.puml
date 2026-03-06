@@ -1,0 +1,59 @@
+@startuml UC1_ViewTaskStatus
+title Sequence Diagram: View Task Status
+
+actor "User / Developer" as User
+participant "TaskQueue" as TQ
+participant "Task" as T
+participant "ExecutionRecord" as ER
+participant "WorkerNode" as WN
+participant "SystemMetrics" as SM
+
+User -> TQ : getSize(): Integer
+activate TQ
+TQ --> User : queueSize: Integer
+deactivate TQ
+
+User -> TQ : dequeue(): Task
+activate TQ
+TQ -> T : getStatus(): TaskStatus
+activate T
+T --> TQ : status: TaskStatus
+deactivate T
+TQ --> User : task: Task
+deactivate TQ
+
+User -> T : getTaskID(): String
+activate T
+T --> User : taskID: String
+deactivate T
+
+User -> T : getStatus(): TaskStatus
+activate T
+T --> User : status (PENDING / RUNNING / COMPLETED / FAILED)
+deactivate T
+
+User -> T : getElapsedTime(): Long
+activate T
+T --> User : elapsedTime: Long
+deactivate T
+
+User -> ER : getDuration(): Long
+activate ER
+ER -> WN : getStatus(): WorkerStatus
+activate WN
+WN --> ER : workerStatus: WorkerStatus
+deactivate WN
+ER --> User : duration: Long
+deactivate ER
+
+User -> ER : isSuccessful(): Boolean
+activate ER
+ER --> User : isSuccessful: Boolean
+deactivate ER
+
+User -> SM : isSystemHealthy(): Boolean
+activate SM
+SM --> User : healthy: Boolean
+deactivate SM
+
+@enduml
