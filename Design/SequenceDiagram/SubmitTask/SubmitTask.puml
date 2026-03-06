@@ -1,0 +1,56 @@
+@startuml UC3_SubmitTask
+title Sequence Diagram: Submit Task
+
+actor "User / Developer" as User
+participant "TaskQueue" as TQ
+participant "Task" as T
+participant "ResourceRequirement" as RR
+participant "MLModel" as ML
+participant "WorkerPrediction" as WP
+
+User -> T : updateStatus(PENDING): void
+activate T
+T --> User : void
+deactivate T
+
+User -> T : getTaskID(): String
+activate T
+T --> User : taskID: String
+deactivate T
+
+User -> RR : getTotalResources(): Long
+activate RR
+RR --> User : totalResources: Long
+deactivate RR
+
+User -> RR : getFeasibility(): Double
+activate RR
+RR --> User : feasibility: Double
+deactivate RR
+
+User -> TQ : enqueueTask(): void
+activate TQ
+TQ -> T : getStatus(): TaskStatus
+activate T
+T --> TQ : PENDING
+deactivate T
+TQ -> RR : isResourceAvailable(worker: WorkerNode): Boolean
+activate RR
+RR --> TQ : available: Boolean
+deactivate RR
+TQ --> User : void
+deactivate TQ
+
+TQ -> ML : predict(input: Input): Prediction
+activate ML
+ML --> TQ : prediction: Prediction
+deactivate ML
+
+TQ -> TQ : prioritize(task: Task): void
+
+TQ -> WP : isAccurate(): Boolean
+activate WP
+WP --> TQ : accurate: Boolean
+deactivate WP
+
+@enduml
