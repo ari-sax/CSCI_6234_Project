@@ -1,0 +1,65 @@
+@startuml UC4_MonitorWorkers
+title Sequence Diagram: Monitor Workers
+
+actor "System Admin" as Admin
+participant "WorkerNode" as WN
+participant "HealthMetrics" as HM
+participant "MonitoringAlert" as MA
+participant "SystemMetrics" as SM
+participant "ExecutionEnvironment" as EE
+
+Admin -> WN : getStatus(): WorkerStatus
+activate WN
+WN --> Admin : workerStatus (ONLINE / OFFLINE / BUSY)
+deactivate WN
+
+Admin -> WN : isHealthy(): Boolean
+activate WN
+WN --> Admin : isHealthy: Boolean
+deactivate WN
+
+Admin -> WN : getAvailableCapacity(): Double
+activate WN
+WN --> Admin : availableCapacity: Double
+deactivate WN
+
+Admin -> WN : updateHeartbeat(): void
+activate WN
+WN --> Admin : void
+deactivate WN
+
+Admin -> HM : isWorkerHealthy(): Boolean
+activate HM
+HM --> Admin : healthy: Boolean
+deactivate HM
+
+Admin -> HM : getHealthScore(): Double
+activate HM
+HM --> Admin : healthScore: Double
+deactivate HM
+
+Admin -> HM : generateAlert(): MonitoringAlert
+activate HM
+HM -> MA : isResolved(): Boolean
+activate MA
+MA --> HM : resolved: Boolean
+deactivate MA
+HM --> Admin : monitoringAlert: MonitoringAlert
+deactivate HM
+
+Admin -> SM : isSystemHealthy(): Boolean
+activate SM
+SM --> Admin : healthy: Boolean
+deactivate SM
+
+Admin -> EE : getAvailableCapacity(): Long
+activate EE
+EE --> Admin : availableCapacity: Long
+deactivate EE
+
+Admin -> EE : getUtilization(): Double
+activate EE
+EE --> Admin : utilization: Double
+deactivate EE
+
+@enduml
