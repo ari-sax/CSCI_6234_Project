@@ -1,0 +1,72 @@
+@startuml UC6_ExecuteTasks
+title Sequence Diagram: Execute Tasks
+
+participant "TaskQueue" as TQ
+participant "WorkerNode" as WN
+participant "Task" as T
+participant "ExecutionRecord" as ER
+participant "ResourceRequirement" as RR
+participant "FeedbackData" as FD
+
+TQ -> TQ : dequeue(): Task
+activate TQ
+TQ -> T : getStatus(): TaskStatus
+activate T
+T --> TQ : PENDING
+deactivate T
+TQ --> TQ : task: Task
+deactivate TQ
+
+TQ -> WN : assignTask(task: Task): Boolean
+activate WN
+WN -> RR : isResourceAvailable(worker: WorkerNode): Boolean
+activate RR
+RR --> WN : available: Boolean
+deactivate RR
+
+WN -> T : updateStatus(RUNNING): void
+activate T
+T --> WN : void
+deactivate T
+
+WN -> WN : getAvailableCapacity(): Double
+
+WN -> ER : isSuccessful(): Boolean
+activate ER
+ER --> WN : isSuccessful: Boolean
+deactivate ER
+
+WN -> ER : getDuration(): Long
+activate ER
+ER --> WN : duration: Long
+deactivate ER
+
+WN -> ER : getResourceUsage(): ResourceUsage
+activate ER
+ER --> WN : resourceUsage: ResourceUsage
+deactivate ER
+
+WN -> T : updateStatus(COMPLETED): void
+activate T
+T --> WN : void
+deactivate T
+
+WN -> T : getElapsedTime(): Long
+activate T
+T --> WN : elapsedTime: Long
+deactivate T
+
+WN -> FD : isReadyForLearning(): Boolean
+activate FD
+FD --> WN : ready: Boolean
+deactivate FD
+
+WN -> FD : markAsProcessed(): void
+activate FD
+FD --> WN : void
+deactivate FD
+
+WN --> TQ : assigned: Boolean
+deactivate WN
+
+@enduml
