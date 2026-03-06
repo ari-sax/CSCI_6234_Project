@@ -1,0 +1,61 @@
+@startuml UC8_PredictWorker
+title Sequence Diagram: Predict Worker\n(«include» from Submit Task)
+
+participant "TaskQueue" as TQ
+participant "MLModel" as ML
+participant "WorkerNode" as WN
+participant "WorkerPrediction" as WP
+participant "ResourceRequirement" as RR
+participant "ExecutionEnvironment" as EE
+
+TQ -> ML : predict(input: Input): Prediction
+activate ML
+ML -> ML : checkDrift(): DriftStatus
+ML --> TQ : prediction: Prediction
+deactivate ML
+
+TQ -> ML : getAccuracy(): Double
+activate ML
+ML --> TQ : accuracy: Double
+deactivate ML
+
+TQ -> WN : getStatus(): WorkerStatus
+activate WN
+WN --> TQ : workerStatus (ONLINE / OFFLINE / BUSY)
+deactivate WN
+
+TQ -> WN : getAvailableCapacity(): Double
+activate WN
+WN --> TQ : availableCapacity: Double
+deactivate WN
+
+TQ -> RR : isResourceAvailable(worker: WorkerNode): Boolean
+activate RR
+RR --> TQ : available: Boolean
+deactivate RR
+
+TQ -> EE : canAcceptTask(task: Task): Boolean
+activate EE
+EE -> WN : isHealthy(): Boolean
+activate WN
+WN --> EE : healthy: Boolean
+deactivate WN
+EE --> TQ : canAccept: Boolean
+deactivate EE
+
+TQ -> WN : assignTask(task: Task): Boolean
+activate WN
+WN --> TQ : assigned: Boolean
+deactivate WN
+
+TQ -> WP : isAccurate(): Boolean
+activate WP
+WP --> TQ : accurate: Boolean
+deactivate WP
+
+TQ -> WP : getDurationError(): Long
+activate WP
+WP --> TQ : durationError: Long
+deactivate WP
+
+@enduml
