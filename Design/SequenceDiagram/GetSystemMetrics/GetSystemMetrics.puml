@@ -1,0 +1,60 @@
+@startuml UC2_GetSystemMetrics
+title Sequence Diagram: Get System Metrics
+
+actor "User / Developer" as User
+actor "System Admin" as Admin
+participant "SystemMetrics" as SM
+participant "PerformanceHistory" as PH
+participant "WorkerNode" as WN
+participant "SystemStatus" as SS
+
+User -> SM : getSuccessRatePercent(): Double
+activate SM
+SM --> User : successRate: Double
+deactivate SM
+
+User -> SM : getAverageLatency(): Long
+activate SM
+SM --> User : averageLatency: Long
+deactivate SM
+
+User -> SM : getPredictionAccuracy(): Double
+activate SM
+SM --> User : predictionAccuracy: Double
+deactivate SM
+
+User -> SM : isSystemHealthy(): Boolean
+activate SM
+SM --> User : healthy: Boolean
+deactivate SM
+
+Admin -> SS : isSystemOperational(): Boolean
+activate SS
+SS --> Admin : operational: Boolean
+deactivate SS
+
+Admin -> SS : getOperationalWorkerCount(): Integer
+activate SS
+SS -> WN : getStatus(): WorkerStatus
+activate WN
+WN --> SS : workerStatus: WorkerStatus
+deactivate WN
+SS --> Admin : operationalCount: Integer
+deactivate SS
+
+Admin -> PH : getAverageMetrics(): SystemMetrics
+activate PH
+PH --> Admin : averageMetrics: SystemMetrics
+deactivate PH
+
+Admin -> PH : getTrend(): Trend
+activate PH
+PH --> Admin : trend (IMPROVING / STABLE / DEGRADING)
+deactivate PH
+
+Admin -> WN : getAvailableCapacity(): Double
+activate WN
+WN --> Admin : availableCapacity: Double
+deactivate WN
+
+@enduml
