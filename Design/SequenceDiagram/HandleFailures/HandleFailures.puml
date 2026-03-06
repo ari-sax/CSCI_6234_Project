@@ -1,0 +1,70 @@
+@startuml UC5_HandleFailures
+title Sequence Diagram: Handle Failures
+
+actor "System Admin" as Admin
+participant "WorkerNode" as WN
+participant "Task" as T
+participant "ErrorRecord" as ER
+participant "TaskQueue" as TQ
+participant "MonitoringAlert" as MA
+participant "HealthMetrics" as HM
+
+WN -> WN : getStatus(): WorkerStatus
+activate WN
+WN --> WN : BUSY / OFFLINE
+deactivate WN
+
+WN -> ER : getSeverity(): ErrorSeverity
+activate ER
+ER --> WN : severity: ErrorSeverity
+deactivate ER
+
+WN -> ER : isRecoverable(): Boolean
+activate ER
+ER --> WN : recoverable: Boolean
+deactivate ER
+
+WN -> HM : generateAlert(): MonitoringAlert
+activate HM
+HM -> MA : escalate(): void
+activate MA
+MA --> HM : void
+deactivate MA
+HM --> WN : monitoringAlert: MonitoringAlert
+deactivate HM
+
+Admin -> MA : requiresManualAction(): Boolean
+activate MA
+MA --> Admin : requiresManualAction: Boolean
+deactivate MA
+
+Admin -> T : getStatus(): TaskStatus
+activate T
+T --> Admin : FAILED
+deactivate T
+
+Admin -> T : updateStatus(PENDING): void
+activate T
+T --> Admin : void
+deactivate T
+
+Admin -> TQ : enqueueTask(): void
+activate TQ
+TQ -> WN : assignTask(task: Task): Boolean
+activate WN
+WN --> TQ : assigned: Boolean
+deactivate WN
+TQ --> Admin : void
+deactivate TQ
+
+Admin -> ER : requiresManualIntervention(): Boolean
+activate ER
+ER --> Admin : requiresIntervention: Boolean
+deactivate ER
+
+Admin -> MA : resolve(): void
+activate MA
+MA --> Admin : void
+deactivate MA
+
+@enduml
